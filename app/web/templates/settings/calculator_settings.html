@@ -1,0 +1,150 @@
+{% extends "layouts/base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4 pb-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-uppercase" style="letter-spacing: 1px;">
+                <i class="bi bi-gear-fill me-2 text-warning"></i>Управление шаблонами
+            </h2>
+            <p class="text-muted mb-0">Настройка правил и порогов NRV для конструктора рассрочек</p>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-xl-4 col-lg-5">
+            <div class="card card-glass border-0 shadow">
+                <div class="card-body p-4">
+                    <h5 class="card-title fw-bold mb-4 border-bottom pb-2">Новый шаблон рассрочки</h5>
+                    <form action="{{ url_for('settings.calculator_settings') }}" method="POST">
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Название шаблона</label>
+                            <input type="text" name="name" class="form-control rounded-0" placeholder="Рассрочка 24 мес, ПВ 30%" required>
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small text-muted">Макс. срок (мес)</label>
+                                <input type="number" name="max_term_months" class="form-control rounded-0" min="1" value="12" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small text-muted">Мин. ПВ (%)</label>
+                                <input type="number" step="0.1" name="min_initial_payment_percent" class="form-control rounded-0" min="0" max="100" value="15" required>
+                            </div>
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small text-muted">Мин. порог NRV (%)</label>
+                                <input type="number" step="0.1" name="min_nrv_percent" id="minNrvInput" class="form-control rounded-0" min="0" max="200" value="90" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small text-muted">Ставка диск. (% год)</label>
+                                <input type="number" step="0.1" name="discount_rate_annual" id="discountRateInput" class="form-control rounded-0" min="0" value="16.5" required>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="require_nrv_validation" id="requireNrvSwitch" checked>
+                                <label class="form-check-label small text-muted" for="requireNrvSwitch">Обязательная проверка NRV</label>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-golden w-100 fw-bold rounded-0">СОЗДАТЬ ШАБЛОН</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-8 col-lg-7">
+            <div class="card card-glass border-0 shadow">
+                <div class="card-body p-4">
+                    <h5 class="card-title fw-bold mb-4 border-bottom pb-2">Активные правила расчета</h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="small text-uppercase text-muted">
+                                <tr>
+                                    <th>Название</th>
+                                    <th class="text-center">Макс. срок</th>
+                                    <th class="text-center">Мин. ПВ</th>
+                                    <th class="text-center">Мин. NRV</th>
+                                    <th class="text-center">Ставка диск.</th>
+                                    <th class="text-center">Статус</th>
+                                    <th class="text-center">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for template in templates %}
+                                <tr data-id="{{ template.id }}">
+                                    <td class="fw-bold">{{ template.name }}</td>
+                                    <td class="text-center">{{ template.max_term_months }} мес.</td>
+                                    <td class="text-center">{{ template.min_initial_payment_percent }}%</td>
+                                    <td class="text-center">
+                                        {% if template.require_nrv_validation %}
+                                            {{ template.min_nrv_percent }}%
+                                        {% else %}
+                                            <span class="text-muted">Выкл.</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center text-muted">{{ template.discount_rate_annual }}%</td>
+                                    <td class="text-center">
+                                        <div class="form-check form-switch d-inline-block">
+                                            <input class="form-check-input toggle-status-btn" type="checkbox" {% if template.is_active %}checked{% endif %}>
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        <form action="{{ url_for('settings.delete_template', template_id=template.id) }}" method="POST" onsubmit="return confirm('Удалить данный шаблон?');" class="d-inline">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger rounded-0">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted py-4">Шаблоны отсутствуют. Создайте первый шаблон.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const requireNrvSwitch = document.getElementById('requireNrvSwitch');
+    const minNrvInput = document.getElementById('minNrvInput');
+    const discountRateInput = document.getElementById('discountRateInput');
+
+    if(requireNrvSwitch) {
+        requireNrvSwitch.addEventListener('change', (e) => {
+            if (!e.target.checked) {
+                minNrvInput.disabled = true;
+                discountRateInput.disabled = true;
+                minNrvInput.value = 0;
+                discountRateInput.value = 0;
+            } else {
+                minNrvInput.disabled = false;
+                discountRateInput.disabled = false;
+                minNrvInput.value = 90;
+                discountRateInput.value = 16.5;
+            }
+        });
+    }
+
+    document.querySelectorAll('.toggle-status-btn').forEach(btn => {
+        btn.addEventListener('change', async (e) => {
+            const tr = e.target.closest('tr');
+            const id = tr.dataset.id;
+            try {
+                const response = await fetch(`/settings/calculator/toggle/${id}`, { method: 'POST' });
+                if (!response.ok) e.target.checked = !e.target.checked;
+            } catch {
+                e.target.checked = !e.target.checked;
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

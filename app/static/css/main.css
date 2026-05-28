@@ -1,0 +1,195 @@
+/* :::::: ПЕРЕМЕННЫЕ И ЦВЕТОВАЯ СХЕМА MACRO CRM :::::: */
+:root {
+    --macro-green: #00B368;
+    --macro-green-dark: #008F53;
+    --macro-green-rgb: 0, 179, 104;
+
+    /* Переопределение старых переменных для совместимости HTML */
+    --gh-gold: var(--macro-green);
+    --gh-dark-gold: var(--macro-green-dark);
+    --gh-gold-rgb: var(--macro-green-rgb);
+
+    --bs-warning: var(--macro-green);
+    --bs-warning-rgb: var(--macro-green-rgb);
+    --bs-warning-text-emphasis: #000000;
+}
+
+[data-bs-theme="light"] {
+    --bs-body-bg: #f8f9fa;
+    --bs-body-color: #212529;
+    --gh-element-bg: #ffffff;
+    --gh-element-bg-rgb: 255, 255, 255;
+    --bs-border-color: #dee2e6;
+    --gh-header-color: #212529;
+    --gh-link-color: #495057;
+    --gh-card-shadow: rgba(0,0,0,0.05);
+}
+
+[data-bs-theme="dark"] {
+    --bs-body-bg: #111827; /* Глубокий синий/черный графит */
+    --bs-body-color: #F3F4F6;
+    --gh-element-bg: rgba(31, 41, 55, 0.7);
+    --gh-element-bg-rgb: 31, 41, 55;
+    --bs-border-color: #495057;
+    --gh-header-color: #ffffff;
+    --gh-link-color: #adb5bd;
+    --gh-card-shadow: rgba(0,0,0,0.3);
+}
+
+body {
+    font-family: 'Montserrat', sans-serif;
+    background-color: var(--bs-body-bg);
+    color: var(--bs-body-color);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+#particles-js {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    z-index: -1;
+    pointer-events: none;
+}
+
+.header {
+    background-color: rgba(var(--gh-element-bg-rgb), 0.8);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 10px var(--gh-card-shadow);
+}
+
+.nav-link {
+    font-weight: 500;
+    color: var(--gh-link-color);
+    transition: color 0.2s ease, transform 0.2s ease;
+}
+.nav-link.active, .nav-link:hover {
+    color: var(--macro-green) !important;
+    transform: translateY(-2px);
+}
+.nav-link:focus {
+    outline: 2px solid rgba(var(--macro-green-rgb), 0.5);
+    outline-offset: 2px;
+}
+
+.accordion-item {
+    background-color: var(--gh-element-bg);
+    border-color: var(--bs-border-color);
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+.accordion-button {
+    color: var(--bs-body-color);
+    background-color: var(--gh-element-bg);
+    transition: color 0.3s ease, background-color 0.3s ease;
+}
+.accordion-button:not(.collapsed) {
+    color: var(--gh-header-color);
+    background-color: rgba(var(--macro-green-rgb), 0.1);
+    box-shadow: inset 0 -1px 0 rgba(0,0,0,.125);
+}
+.accordion-button:focus {
+    box-shadow: 0 0 0 .25rem rgba(var(--macro-green-rgb), 0.25);
+    border-color: rgba(var(--macro-green-rgb), 0.5);
+}
+
+/* СТИЛИ КНОПОК MACRO GREEN */
+.btn {
+    position: relative;
+    border-width: 2px;
+    border-style: solid;
+    font-weight: 500;
+    transition: border-color 0.5s ease, box-shadow 0.5s ease, color 0.5s ease, background-color 0.5s ease;
+}
+
+.btn:hover, .btn:focus {
+    border-color: var(--macro-green);
+    box-shadow: 0 0 0 1px var(--macro-green), 0 0 20px rgba(var(--macro-green-rgb), 0.5);
+    outline: none;
+}
+
+.btn-primary, .btn-success, .btn-danger, .btn-warning, .btn-info, .btn-dark {
+    border-color: transparent;
+}
+
+.btn-outline-primary:hover,
+.btn-outline-secondary:hover,
+.btn-outline-success:hover,
+.btn-outline-danger:hover,
+.btn-outline-warning:hover,
+.btn-outline-info:hover {
+    background-color: transparent;
+    color: var(--macro-green);
+}
+
+.btn-golden, .btn-golden-outline {
+    border-color: rgba(var(--macro-green-rgb), 0.5);
+    color: var(--macro-green);
+    background-color: transparent;
+}
+
+.btn-golden:hover, .btn-golden-outline:hover {
+    color: var(--macro-green-dark);
+    background-color: rgba(var(--macro-green-rgb), 0.1);
+}
+
+.form-control, .form-select, .form-control-file {
+    background-color: var(--gh-element-bg);
+    color: var(--bs-body-color);
+    border-color: var(--bs-border-color);
+    transition: all 0.2s ease-in-out;
+}
+.form-control:focus, .form-select:focus {
+    border-color: var(--macro-green);
+    box-shadow: 0 0 0 .25rem rgba(var(--macro-green-rgb), 0.25);
+    background-color: var(--gh-element-bg);
+    color: var(--bs-body-color);
+}
+
+.table {
+    --bs-table-bg: var(--gh-element-bg);
+    --bs-table-color: var(--bs-body-color);
+    --bs-table-border-color: var(--bs-border-color);
+}
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(var(--bs-body-color-rgb), 0.05);
+}
+.table-hover tbody tr:hover {
+    background-color: rgba(var(--macro-green-rgb), 0.1);
+}
+
+.card {
+    background-color: var(--gh-element-bg) !important;
+    border-color: var(--bs-border-color);
+    box-shadow: 0 4px 15px var(--gh-card-shadow);
+    transition: all 0.3s ease;
+}
+
+.card-glass {
+    background: rgba(var(--gh-element-bg-rgb), 0.6) !important;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-content {
+    background-color: var(--gh-element-bg) !important;
+    color: var(--bs-body-color) !important;
+    border-color: var(--bs-border-color);
+    box-shadow: 0 5px 25px rgba(0,0,0,0.2);
+}
+.modal-header {
+    border-bottom-color: var(--bs-border-color);
+}
+.modal-footer {
+    border-top-color: var(--bs-border-color);
+}
+
+.badge {
+    font-weight: 600;
+    padding: 0.4em 0.7em;
+}
+.badge.bg-success-subtle { background-color: rgba(var(--bs-success-rgb), 0.15) !important; color: var(--bs-success) !important; border-color: rgba(var(--bs-success-rgb), 0.2) !important; }
+.badge.bg-secondary-subtle { background-color: rgba(var(--bs-secondary-rgb), 0.15) !important; color: var(--bs-secondary) !important; border-color: rgba(var(--bs-secondary-rgb), 0.2) !important; }
+.badge.bg-danger-subtle { background-color: rgba(var(--bs-danger-rgb), 0.15) !important; color: var(--bs-danger) !important; border-color: rgba(var(--bs-danger-rgb), 0.2) !important; }
+.badge.bg-info-subtle { background-color: rgba(var(--bs-info-rgb), 0.15) !important; color: var(--bs-info) !important; border-color: rgba(var(--bs-info-rgb), 0.2) !important; }
+.badge.bg-primary-subtle { background-color: rgba(var(--bs-primary-rgb), 0.15) !important; color: var(--bs-primary) !important; border-color: rgba(var(--bs-primary-rgb), 0.2) !important; }

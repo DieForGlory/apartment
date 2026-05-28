@@ -1,0 +1,604 @@
+{% extends "layouts/base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4 pb-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-uppercase" style="letter-spacing: 1px;">
+                <i class="bi bi-calculator-fill me-2 text-success"></i>{{ _('Финансовый симулятор эскалации цен (Macro CRM)') }}
+            </h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="{{ url_for('main.selection') }}">{{ _('Qualified') }}</a></li>
+                    <li class="breadcrumb-item active">{{ data.apartment.house.complex_name if data.apartment and data.apartment.house else 'Объект' }} / ID {{ data.apartment.id }}</li>
+                </ol>
+            </nav>
+        </div>
+        <a href="{{ url_for('main.apartment_details', sell_id=data.apartment.id) }}" class="btn btn-outline-secondary rounded-0">
+            <i class="bi bi-arrow-left me-2"></i>{{ _('Вернуться в карточку') }}
+        </a>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-xl-4 col-lg-5">
+            <div class="card mb-3 border-0 shadow-sm rounded-0">
+                <div class="card-header bg-dark text-white rounded-0 py-3">
+                    <h5 class="mb-0 fw-bold small text-uppercase" style="letter-spacing: 0.5px;"><i class="bi bi-building me-2"></i>{{ _('Параметры недвижимости') }}</h5>
+                </div>
+                <div class="card-body p-3" style="background-color: var(--gh-element-bg); color: var(--bs-body-color);">
+                    <div class="row g-2 text-center">
+                        <div class="col-6 border-end border-secondary">
+                            <small class="text-muted d-block text-uppercase" style="font-size: 0.75rem;">{{ _('Категория') }}</small>
+                            <span class="fw-bold">{{ data.apartment.estate_sell_category }}</span>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted d-block text-uppercase" style="font-size: 0.75rem;">{{ _('Площадь') }}</small>
+                            <span class="fw-bold">{{ data.apartment.estate_area }} м²</span>
+                        </div>
+                        <div class="col-12 pt-2 border-top border-secondary mt-2">
+                            <small class="text-muted d-block text-uppercase" style="font-size: 0.75rem;">{{ _('Базовая цена по прайсу') }}</small>
+                            <h4 class="fw-bold mb-0 text-success">
+                                <span id="basePriceDisplay">{{ "{:,.0f}".format(data.apartment.estate_price).replace(",", " ") }}</span> <small class="text-muted" style="font-size:0.6em;">KZT</small>
+                            </h4>
+                            <input type="hidden" id="basePriceRaw" value="{{ data.apartment.estate_price }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-3 border-0 shadow-sm rounded-0">
+                <div class="card-header bg-dark text-white rounded-0 py-3">
+                    <h5 class="mb-0 fw-bold small text-uppercase" style="letter-spacing: 0.5px;"><i class="bi bi-tags me-2"></i>{{ _('Управление скидками продавца') }}</h5>
+                </div>
+                <div class="card-body p-3" style="background-color: var(--gh-element-bg); color: var(--bs-body-color);">
+                    <form id="discountsForm">
+                        <div class="row g-2">
+                            <div class="col-12">
+                                <label class="form-label small fw-bold text-success mb-1">{{ _('Базовая скидка (МПП + РОП) (%%)') }}</label>
+                                <input type="number" step="0.1" min="0" max="100" class="form-control form-control-sm rounded-0 discount-input fw-bold" style="background-color: var(--bs-body-bg); color: var(--bs-body-color); border: 1px solid var(--bs-border-color);" data-discount-type="base" value="0">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-bold mb-1">{{ _('КД (%%)') }}</label>
+                                <input type="number" step="0.1" min="0" max="100" class="form-control form-control-sm rounded-0 discount-input" style="background-color: var(--bs-body-bg); color: var(--bs-body-color); border: 1px solid var(--bs-border-color);" data-discount-type="kd" value="0">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-bold mb-1">{{ _('ОПТ (%%)') }}</label>
+                                <input type="number" step="0.1" min="0" max="100" class="form-control form-control-sm rounded-0 discount-input" style="background-color: var(--bs-body-bg); color: var(--bs-body-color); border: 1px solid var(--bs-border-color);" data-discount-type="opt" value="0">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-bold mb-1">{{ _('Акционерная / Специальная (%%)') }}</label>
+                                <input type="number" step="0.1" min="0" max="100" class="form-control form-control-sm rounded-0 discount-input" style="background-color: var(--bs-body-bg); color: var(--bs-body-color); border: 1px solid var(--bs-border-color);" data-discount-type="shareholder" value="0">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm rounded-0">
+                <div class="card-header bg-dark text-white rounded-0 py-3">
+                    <h5 class="mb-0 fw-bold small text-uppercase text-warning" style="letter-spacing: 0.5px;"><i class="bi bi-shield-shaded me-2"></i>{{ _('Монитор NPV-эффективности') }}</h5>
+                </div>
+                <div class="card-body p-4" style="background-color: var(--gh-element-bg); color: var(--bs-body-color);">
+                    <div class="mb-3">
+                        <small class="text-muted d-block text-uppercase style-tracking" style="font-size:0.7rem;">{{ _('Эталонная цена (100%% оплата сегодня)') }}</small>
+                        <h5 class="fw-bold mb-0" id="targetPriceDisplay" style="color: var(--bs-body-color);">0 KZT</h5>
+                    </div>
+
+                    <div class="mb-3 border-top border-secondary pt-2">
+                        <small class="text-muted d-block text-uppercase style-tracking" style="font-size:0.7rem;">{{ _('Текущая номинальная сумма договора') }}</small>
+                        <h4 class="fw-bold text-warning mb-0" id="nominalDealPriceDisplay">0 KZT</h4>
+                    </div>
+
+                    <div class="mb-3 border-top border-secondary pt-2">
+                        <small class="text-muted d-block text-uppercase style-tracking" style="font-size:0.7rem;">{{ _('Фактический чистый доход компании (Полученный NRV)') }}</small>
+                        <h4 class="fw-bold mb-0 text-success" id="nrvAbsoluteDisplay">0 KZT</h4>
+                    </div>
+
+                    <div class="mb-3 border-top border-secondary pt-2">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <small class="text-muted text-uppercase style-tracking" style="font-size:0.7rem;">{{ _('Индекс сохранения стоимости денежного потока') }}</small>
+                            <span class="badge rounded-0 fw-bold text-dark bg-warning" id="nrvPercentBadge">0%</span>
+                        </div>
+                        <div class="progress rounded-0" style="height: 8px; background-color: var(--bs-border-color);">
+                            <div id="nrvProgressBar" class="progress-bar bg-success" role="progressbar" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <div id="compensationBox" class="mt-4 p-3 border border-warning bg-warning bg-opacity-10 rounded-0 style-compensation d-none">
+                        <div class="text-warning fw-bold small text-uppercase mb-2"><i class="bi bi-lightning-charge-fill me-1"></i>{{ _('Обнаружено временное отклонение стоимости:') }}</div>
+                        <div class="small mb-2" style="color: var(--bs-body-color);">{{ _('Из-за растянутых сроков оплаты ценность денег снизилась. Требуется эскалация финального транша для защиты маржинальности объекта:') }}</div>
+                        <div class="fs-6 mb-3 fw-bold" style="color: var(--bs-body-color);">{{ _('Необходимая наценка:') }} <strong class="text-danger" id="recommendedMarkupDisplay">+0 ₸</strong></div>
+                        <button type="button" id="btnApplyEscalationLive" class="btn btn-warning btn-sm w-100 fw-bold rounded-0 text-uppercase">
+                            <i class="bi bi-magic me-2"></i>{{ _('Скомпенсировать отклонение до 100%% NPV') }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-8 col-lg-7">
+            <div class="card border-0 shadow-sm rounded-0 h-100">
+                <div class="card-header bg-dark text-white rounded-0 py-3">
+                    <h5 class="mb-0 fw-bold small text-uppercase" style="letter-spacing: 0.5px;"><i class="bi bi-grid-3x3-gap-fill me-2"></i>{{ _('Интерактивный конструктор платежного календаря') }}</h5>
+                </div>
+                <div class="card-body p-4" style="background-color: var(--gh-element-bg); color: var(--bs-body-color);">
+                    <div class="row g-3 mb-4 align-items-end">
+                        <div class="col-md-7">
+                            <label for="templateSelect" class="form-label fw-bold small text-uppercase text-secondary">{{ _('Выберите шаблон условий рассрочки') }}</label>
+                            <select id="templateSelect" class="form-select rounded-0 form-select-lg border-secondary fw-bold" style="background-color: var(--bs-body-bg); color: var(--bs-body-color);">
+                                <option value="">-- {{ _('Выберите тип рассрочки') }} --</option>
+                                {% for template in templates %}
+                                <option value="{{ template.id }}"
+                                        data-max-term="{{ template.max_term_months }}"
+                                        data-min-dp="{{ template.min_initial_payment_percent }}"
+                                        data-min-nrv="{{ template.min_nrv_percent }}"
+                                        data-rates='{{ template.discount_rates_json | safe if template.discount_rates_json else "{}" }}'
+                                        data-default-rate="{{ template.discount_rate_annual }}"
+                                        data-require-nrv="{{ 'true' if template.require_nrv_validation else 'false' }}">
+                                    {{ template.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div id="templateRules" class="col-md-5 small pb-2 border p-2" style="display:none; background-color: var(--bs-body-bg); border-color: var(--bs-border-color) !important;">
+                            <div class="fw-bold mb-1 text-uppercase style-tracking" style="font-size:0.75rem;">{{ _('Параметры контроля:') }}</div>
+                            <div><i class="bi bi-dot text-success"></i> Лимит срока: <span id="ruleMaxTerm" class="fw-bold"></span> мес.</div>
+                            <div><i class="bi bi-dot text-success"></i> Мин. первый взнос: <span id="ruleMinDp" class="fw-bold"></span>%</div>
+                            <div id="ruleNrvRow"><i class="bi bi-dot text-success"></i> Минимальный порог NRV: <span id="ruleMinNrv" class="fw-bold"></span>%</div>
+                        </div>
+                    </div>
+
+                    <div id="scheduleConstructor" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="fw-bold mb-0 text-uppercase text-secondary" style="font-size:0.85rem; letter-spacing: 0.5px;">{{ _('График начислений и financial коэффициенты элементов') }}</h6>
+                            <div class="btn-group">
+                                <button id="btnAutoDistribute" class="btn btn-sm btn-outline-success rounded-0">{{ _('Равными долями на остаток') }}</button>
+                                <button id="btnAddPayment" class="btn btn-sm btn-outline-primary rounded-0">{{ _('Добавить платеж') }}</button>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover table-sm align-middle mb-0" id="scheduleTable" style="border-color: var(--bs-border-color);">
+                                <thead class="table-dark small text-uppercase text-white-50" style="font-size:0.75rem;">
+                                    <tr>
+                                        <th style="width: 15%;" class="py-2 text-center">{{ _('№ Месяца') }}</th>
+                                        <th style="width: 40%;" class="py-2">{{ _('Номинальная сумма (KZT)') }}</th>
+                                        <th style="width: 20%;" class="py-2 text-center">{{ _('Коэф. дисконта (1/f^t)') }}</th>
+                                        <th style="width: 25%;" class="py-2 text-end">{{ _('Приведенная стоимость (NPV)') }}</th>
+                                        <th style="width: 10%;" class="py-2 text-center">{{ _('Удалить') }}</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="scheduleBody">
+                                    </tbody>
+                            </table>
+                        </div>
+
+                        <div class="d-grid gap-2 mt-4">
+                            <button id="btnValidateSchedule" class="btn btn-success btn-lg fw-bold rounded-0 text-uppercase style-action-btn" style="background-color: var(--macro-green); border-color: var(--macro-green);">
+                                <i class="bi bi-check2-all me-2"></i>{{ _('Утвердить и зафиксировать сделку в CRM') }}
+                            </button>
+                        </div>
+
+                        <div id="validationResultBox" class="mt-3 p-3 border d-none rounded-0">
+                            <div id="validationStatusText" class="fw-bold small"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.style-tracking { letter-spacing: 0.5px; }
+.style-compensation { transition: all 0.3s ease-in-out; }
+.style-action-btn { transition: background-color 0.2s, transform 0.1s; }
+.style-action-btn:active { transform: scale(0.99); }
+#scheduleTable input[readonly] { background-color: var(--bs-body-bg) !important; opacity: 0.6; cursor: not-allowed; }
+.table-hover tbody tr:hover { background-color: rgba(var(--macro-green-rgb), 0.08) !important; }
+.drag-handle { user-select: none; }
+</style>
+
+<script>
+    const SELL_ID = {{ data.apartment.id }};
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // DOM Элементы
+    const templateSelect = document.getElementById('templateSelect');
+    const templateRules = document.getElementById('templateRules');
+    const ruleMaxTerm = document.getElementById('ruleMaxTerm');
+    const ruleMinDp = document.getElementById('ruleMinDp');
+    const ruleMinNrv = document.getElementById('ruleMinNrv');
+    const ruleNrvRow = document.getElementById('ruleNrvRow');
+
+    const scheduleConstructor = document.getElementById('scheduleConstructor');
+    const scheduleBody = document.getElementById('scheduleBody');
+    const btnAddPayment = document.getElementById('btnAddPayment');
+    const btnAutoDistribute = document.getElementById('btnAutoDistribute');
+    const btnValidateSchedule = document.getElementById('btnValidateSchedule');
+
+    const targetPriceDisplay = document.getElementById('targetPriceDisplay');
+    const nominalDealPriceDisplay = document.getElementById('nominalDealPriceDisplay');
+    const nrvAbsoluteDisplay = document.getElementById('nrvAbsoluteDisplay');
+    const nrvPercentBadge = document.getElementById('nrvPercentBadge');
+    const nrvProgressBar = document.getElementById('nrvProgressBar');
+
+    const compensationBox = document.getElementById('compensationBox');
+    const recommendedMarkupDisplay = document.getElementById('recommendedMarkupDisplay');
+    const btnApplyEscalationLive = document.getElementById('btnApplyEscalationLive');
+    const validationResultBox = document.getElementById('validationResultBox');
+    const validationStatusText = document.getElementById('validationStatusText');
+
+    // Внутренние финансовые переменные
+    const basePriceRaw = parseFloat(document.getElementById('basePriceRaw').value) || 0;
+    let targetCleanPrice = basePriceRaw;
+    let maxTermMonths = 0;
+    let currentTemplateRates = {};
+    let currentDefaultRate = 16.5;
+
+    // Живой расчет дефицита маржи для авто-эскалации
+    let liveCalculatedDeficitMarkup = 0;
+
+    // Состояние Excel протягивания ячеек
+    let isDragging = false;
+    let dragValue = null;
+
+    function init() {
+        bindEvents();
+        updateTargetPrice();
+    }
+
+    function bindEvents() {
+        templateSelect.addEventListener('change', handleTemplateChange);
+        btnAddPayment.addEventListener('click', () => addScheduleRow());
+        btnAutoDistribute.addEventListener('click', autoDistributeRemainder);
+        btnApplyEscalationLive.addEventListener('click', applyLiveCompensation);
+
+        document.querySelectorAll('.discount-input').forEach(input => {
+            input.addEventListener('input', updateTargetPrice);
+        });
+
+        scheduleBody.addEventListener('input', (e) => {
+            if (e.target.classList.contains('amount-input') || e.target.classList.contains('month-input')) {
+                executeFinancialMathematicsLive();
+            }
+        });
+
+        // Глобальный сброс флага перетаскивания
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+            dragValue = null;
+        });
+
+        // Инициация протягивания значения из ячейки
+        scheduleBody.addEventListener('mousedown', (e) => {
+            const handle = e.target.closest('.drag-handle');
+            if (handle) {
+                isDragging = true;
+                const row = handle.closest('tr');
+                const input = row.querySelector('.amount-input');
+                dragValue = input.value;
+                e.preventDefault();
+            }
+        });
+
+        // Протягивание (копирование) значения на соседние строки при зажатой мыши
+        scheduleBody.addEventListener('mouseover', (e) => {
+            if (isDragging && dragValue !== null) {
+                const row = e.target.closest('tr');
+                if (row) {
+                    const mInput = row.querySelector('.month-input');
+                    // Исключаем перезапись защищенной ячейки первоначального взноса
+                    if (mInput && !mInput.hasAttribute('readonly')) {
+                        const input = row.querySelector('.amount-input');
+                        if (input && input.value !== dragValue) {
+                            input.value = dragValue;
+                            executeFinancialMathematicsLive();
+                        }
+                    }
+                }
+            }
+        });
+
+        scheduleBody.addEventListener('click', (e) => {
+            if (e.target.classList.contains('btn-remove-row') || e.target.closest('.btn-remove-row')) {
+                const btn = e.target.classList.contains('btn-remove-row') ? e.target : e.target.closest('.btn-remove-row');
+                btn.closest('tr').remove();
+                executeFinancialMathematicsLive();
+            }
+        });
+
+        btnValidateSchedule.addEventListener('click', executeServerValidation);
+    }
+
+    function handleTemplateChange(e) {
+        const selectedOption = e.target.options[e.target.selectedIndex];
+        if (e.target.value) {
+            maxTermMonths = parseInt(selectedOption.dataset.maxTerm, 10);
+            ruleMaxTerm.textContent = maxTermMonths;
+            ruleMinDp.textContent = selectedOption.dataset.minDp;
+
+            try {
+                currentTemplateRates = JSON.parse(selectedOption.dataset.rates || '{}');
+            } catch (err) {
+                currentTemplateRates = {};
+            }
+            currentDefaultRate = parseFloat(selectedOption.dataset.defaultRate || '16.5');
+
+            if (selectedOption.dataset.requireNrv === 'true') {
+                ruleMinNrv.textContent = selectedOption.dataset.minNrv;
+                ruleNrvRow.style.display = 'block';
+            } else {
+                ruleNrvRow.style.display = 'none';
+            }
+
+            templateRules.style.display = 'block';
+            scheduleConstructor.style.display = 'block';
+            resetSchedule();
+        } else {
+            templateRules.style.display = 'none';
+            scheduleConstructor.style.display = 'none';
+        }
+    }
+
+    function getActiveDiscounts() {
+        const discounts = {};
+        document.querySelectorAll('.discount-input').forEach(input => {
+            const val = parseFloat(input.value) || 0;
+            if (val > 0) {
+                discounts[input.dataset.discountType] = val / 100.0;
+            }
+        });
+        return discounts;
+    }
+
+    function updateTargetPrice() {
+        const discounts = getActiveDiscounts();
+        let totalDiscountRate = 0;
+        for (const key in discounts) {
+            totalDiscountRate += discounts[key];
+        }
+
+        targetCleanPrice = Math.max(0, basePriceRaw * (1 - totalDiscountRate));
+        targetPriceDisplay.textContent = formatCurrency(targetCleanPrice) + ' KZT';
+        executeFinancialMathematicsLive();
+    }
+
+    function resetSchedule() {
+        scheduleBody.innerHTML = '';
+        const minDpPercent = parseFloat(templateSelect.options[templateSelect.selectedIndex].dataset.minDp) || 30;
+        const initialPayment = Math.round(targetCleanPrice * (minDpPercent / 100.0));
+
+        // Автоматически строим строки сразу под весь лимит месяцев выбранного шаблона
+        for (let i = 0; i <= maxTermMonths; i++) {
+            addScheduleRow(i, i === 0 ? initialPayment : '');
+        }
+        executeFinancialMathematicsLive();
+    }
+
+    function addScheduleRow(monthIndex = null, amount = '') {
+        const nextMonth = monthIndex !== null ? monthIndex : getNextAvailableMonth();
+        const tr = document.createElement('tr');
+        const isInitial = nextMonth === 0;
+
+        const inputStyles = "background-color: var(--bs-body-bg); color: var(--bs-body-color); border: 1px solid var(--bs-border-color); font-weight: bold;";
+
+        tr.innerHTML = `
+            <td class="text-center">
+                <input type="number" class="form-control form-control-sm month-input text-center rounded-0"
+                       style="${inputStyles}" min="0" max="${maxTermMonths}" step="1" value="${nextMonth}" ${isInitial ? 'readonly' : ''} required>
+            </td>
+            <td>
+                <div class="input-group input-group-sm">
+                    <input type="number" class="form-control amount-input rounded-0"
+                           style="${inputStyles}" min="0" step="1" value="${amount}" placeholder="Сумма транша" required>
+                    ${!isInitial ? `<span class="input-group-text drag-handle" style="cursor: ns-resize; background-color: rgba(var(--macro-green-rgb), 0.1); border-color: var(--bs-border-color); color: var(--macro-green);" title="Потяните для копирования значения (как в Excel)"><i class="bi bi-grip-vertical"></i></span>` : ''}
+                </div>
+            </td>
+            <td class="text-center fw-bold text-muted small discount-factor-cell">—</td>
+            <td class="text-end fw-bold npv-cell" style="color: var(--bs-body-color);">0 ₸</td>
+            <td class="text-center">
+                ${!isInitial ? `<button class="btn btn-sm btn-outline-danger rounded-0 btn-remove-row p-1" type="button"><i class="bi bi-trash3"></i></button>` : '—'}
+            </td>
+        `;
+        scheduleBody.appendChild(tr);
+        executeFinancialMathematicsLive();
+    }
+
+    function getNextAvailableMonth() {
+        const inputs = Array.from(scheduleBody.querySelectorAll('.month-input'));
+        if (inputs.length === 0) return 0;
+        const maxCurrent = Math.max(...inputs.map(i => parseInt(i.value || 0, 10)));
+        return Math.min(maxCurrent + 1, maxTermMonths);
+    }
+
+    function executeFinancialMathematicsLive() {
+        const rows = Array.from(scheduleBody.querySelectorAll('tr'));
+        let totalNominalPrice = 0;
+        let totalCalculatedNrv = 0;
+        let maxMonthIndex = 0;
+        let finalRowFactor = 1.0;
+
+        rows.forEach(tr => {
+            const mInput = tr.querySelector('.month-input');
+            const aInput = tr.querySelector('.amount-input');
+            const factorCell = tr.querySelector('.discount-factor-cell');
+            const npvCell = tr.querySelector('.npv-cell');
+
+            if (!mInput || !aInput) return;
+
+            const t = parseInt(mInput.value, 10) || 0;
+            const p = parseFloat(aInput.value) || 0;
+
+            totalNominalPrice += p;
+            if (t > maxMonthIndex) {
+                maxMonthIndex = t;
+            }
+
+            let discountFactor = 1.0;
+            if (t > 0) {
+                let yearKey = '1';
+                if (t <= 12) yearKey = '1';
+                else if (t <= 24) yearKey = '2';
+                else if (t <= 36) yearKey = '3';
+                else yearKey = '4';
+
+                const annualRatePercent = parseFloat(currentTemplateRates[yearKey] || currentDefaultRate);
+                const annualRateDecimal = annualRatePercent / 100.0;
+
+                const monthlyFactor = Math.pow(1.0 + annualRateDecimal, 1.0 / 12.0);
+                discountFactor = 1.0 / Math.pow(monthlyFactor, t);
+
+                if (t === maxMonthIndex) {
+                    finalRowFactor = discountFactor;
+                }
+            }
+
+            const rowNpv = p * discountFactor;
+            totalCalculatedNrv += rowNpv;
+
+            if (factorCell) factorCell.textContent = discountFactor.toFixed(5);
+            if (npvCell) npvCell.textContent = formatCurrency(rowNpv) + ' ₸';
+        });
+
+        if (nominalDealPriceDisplay) nominalDealPriceDisplay.textContent = formatCurrency(totalNominalPrice) + ' KZT';
+        if (nrvAbsoluteDisplay) nrvAbsoluteDisplay.textContent = formatCurrency(totalCalculatedNrv) + ' KZT';
+
+        let nrvRatio = targetCleanPrice > 0 ? (totalCalculatedNrv / targetCleanPrice) * 100 : 0;
+        if (nrvPercentBadge) {
+            nrvPercentBadge.textContent = nrvRatio.toFixed(2) + '%';
+            if (nrvRatio >= 99.9) {
+                nrvPercentBadge.className = "badge rounded-0 fw-bold bg-success text-white";
+            } else if (nrvRatio >= 95) {
+                nrvPercentBadge.className = "badge rounded-0 fw-bold bg-info text-dark";
+            } else {
+                nrvPercentBadge.className = "badge rounded-0 fw-bold bg-warning text-dark";
+            }
+        }
+
+        if (nrvProgressBar) {
+            nrvProgressBar.style.width = Math.min(100, nrvRatio) + '%';
+            if (nrvRatio >= 99.9) {
+                nrvProgressBar.className = "progress-bar bg-success";
+            } else {
+                nrvProgressBar.className = "progress-bar bg-warning";
+            }
+        }
+
+        if (nrvRatio < 99.99 && totalNominalPrice > 0) {
+            let deficitAbsoluteNrv = targetCleanPrice - totalCalculatedNrv;
+
+            if (deficitAbsoluteNrv > 0 && finalRowFactor > 0) {
+                liveCalculatedDeficitMarkup = Math.ceil(deficitAbsoluteNrv / finalRowFactor);
+            } else {
+                liveCalculatedDeficitMarkup = 0;
+            }
+
+            if (liveCalculatedDeficitMarkup > 100) {
+                recommendedMarkupDisplay.textContent = "+" + formatCurrency(liveCalculatedDeficitMarkup) + " ₸";
+                compensationBox.classList.remove('d-none');
+            } else {
+                compensationBox.classList.add('d-none');
+            }
+        } else {
+            liveCalculatedDeficitMarkup = 0;
+            compensationBox.classList.add('d-none');
+        }
+
+        btnValidateSchedule.disabled = totalNominalPrice <= 0;
+    }
+
+    function applyLiveCompensation() {
+        if (liveCalculatedDeficitMarkup <= 0) return;
+
+        const rows = Array.from(scheduleBody.querySelectorAll('tr'));
+        if (rows.length > 0) {
+            const lastRowAmountInput = rows[rows.length - 1].querySelector('.amount-input');
+            if (lastRowAmountInput) {
+                const currentVal = parseFloat(lastRowAmountInput.value) || 0;
+                lastRowAmountInput.value = Math.round(currentVal + liveCalculatedDeficitMarkup);
+                executeFinancialMathematicsLive();
+                compensationBox.classList.add('d-none');
+            }
+        }
+    }
+
+    function autoDistributeRemainder() {
+        const amounts = Array.from(scheduleBody.querySelectorAll('.amount-input'));
+        const distributed = amounts.reduce((sum, input) => sum + (parseFloat(input.value) || 0), 0);
+        let remaining = targetCleanPrice - distributed;
+
+        if (remaining <= 0) return;
+
+        const emptyInputs = amounts.filter(input => !input.value || parseFloat(input.value) === 0);
+
+        if (emptyInputs.length > 0) {
+            const splitAmount = Math.floor(remaining / emptyInputs.length);
+            let remainderObj = remaining - (splitAmount * emptyInputs.length);
+
+            emptyInputs.forEach((input, index) => {
+                input.value = splitAmount + (index === emptyInputs.length - 1 ? remainderObj : 0);
+            });
+        } else {
+            addScheduleRow(getNextAvailableMonth(), remaining);
+        }
+        executeFinancialMathematicsLive();
+    }
+
+    function formatCurrency(val) {
+        return new Intl.NumberFormat('ru-RU').format(Math.round(val));
+    }
+
+    async function executeServerValidation() {
+        const templateId = templateSelect.value;
+        const schedule = Array.from(scheduleBody.querySelectorAll('tr'))
+            .map(tr => ({
+                month_index: parseInt(tr.querySelector('.month-input').value, 10),
+                amount: parseFloat(tr.querySelector('.amount-input').value) || 0
+            }))
+            .filter(item => item.amount > 0); // Исключаем пустые неиспользованные месяцы из отправки в БД
+
+        btnValidateSchedule.disabled = true;
+        const originalText = btnValidateSchedule.textContent;
+        btnValidateSchedule.textContent = 'Сохранение сделки...';
+
+        try {
+            const payload = {
+                sell_id: SELL_ID,
+                template_id: parseInt(templateId, 10),
+                schedule: schedule,
+                discounts: getActiveDiscounts()
+            };
+
+            const response = await fetch("{{ url_for('complex_calc.validate_schedule') }}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+
+            validationResultBox.classList.remove('d-none');
+            if (response.ok && data.is_valid) {
+                validationResultBox.className = 'mt-3 p-3 border border-success bg-success bg-opacity-10 text-success rounded-0';
+                validationStatusText.innerHTML = '<i class="bi bi-shield-check me-2"></i>График успешно верифицирован и сохранен в системе Macro CRM!';
+            } else {
+                validationResultBox.className = 'mt-3 p-3 border border-danger bg-danger bg-opacity-10 text-danger rounded-0';
+                validationStatusText.innerHTML = `<i class="bi bi-shield-x me-2"></i>Лимиты нарушены: ${data.error || 'Ошибка параметров договора'}`;
+            }
+        } catch (err) {
+            validationResultBox.classList.remove('d-none');
+            validationResultBox.className = 'mt-3 p-3 border border-danger bg-danger bg-opacity-10 text-danger rounded-0';
+            validationStatusText.innerHTML = '<i class="bi bi-wifi-off me-2"></i>Сбой соединения с сервером базы данных.';
+        } finally {
+            btnValidateSchedule.disabled = false;
+            btnValidateSchedule.textContent = originalText;
+        }
+    }
+
+    init();
+});
+</script>
+{% endblock %}
