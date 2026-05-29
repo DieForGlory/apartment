@@ -175,7 +175,7 @@
 
                         <div class="d-grid gap-2 mt-4">
                             <button id="btnValidateSchedule" class="btn btn-success btn-lg fw-bold rounded-0 text-uppercase style-action-btn" style="background-color: var(--macro-green); border-color: var(--macro-green);">
-                                <i class="bi bi-check2-all me-2"></i>{{ _('Утвердить и зафиксировать сделку в CRM') }}
+                                <i class="bi bi-check2-all me-2"></i>{{ _('Проверить рассчеты ') }}
                             </button>
                         </div>
 
@@ -583,7 +583,7 @@ document.addEventListener('DOMContentLoaded', () => {
             validationResultBox.classList.remove('d-none');
             if (response.ok && data.is_valid) {
                 validationResultBox.className = 'mt-3 p-3 border border-success bg-success bg-opacity-10 text-success rounded-0';
-                validationStatusText.innerHTML = '<i class="bi bi-shield-check me-2"></i>График успешно верифицирован и сохранен в системе Macro CRM!';
+                validationStatusText.innerHTML = '<i class="bi bi-shield-check me-2"></i>График успешно верифицирован';
             } else {
                 validationResultBox.className = 'mt-3 p-3 border border-danger bg-danger bg-opacity-10 text-danger rounded-0';
                 validationStatusText.innerHTML = `<i class="bi bi-shield-x me-2"></i>Лимиты нарушены: ${data.error || 'Ошибка параметров договора'}`;

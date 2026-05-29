@@ -830,11 +830,11 @@ msgid "В этой версии нет данных о скидках."
 msgstr "There is no discount data in this version yet."
 
 #: app/web/templates/layouts/base.html:6
-msgid "Система Qualifiedа квартир"
+msgid "Система Подбора квартир"
 msgstr "Apartment Selection System"
 
 #: app/web/templates/layouts/base.html:46
-msgid "Система Qualifiedа"
+msgid "Система Подбора"
 msgstr "Selection System"
 
 #: app/web/templates/layouts/base.html:49
@@ -1172,10 +1172,10 @@ msgstr "Down payment:"
 #: app/web/templates/main/commercial_offer_complex.html:105
 msgid ""
 "Это коммерческое предложение не является публичной офертой. Актуальность "
-"цен и условий уточняйте у менеджеров Golden House."
+"цен и условий уточняйте у менеджеров"
 msgstr ""
 "This commercial offer is not a public offer. Please check the relevance "
-"of prices and conditions with Golden House managers."
+"of prices and conditions with managers."
 
 #: app/web/templates/main/commercial_offer.html:279
 msgid "Выберите вариант печати"
@@ -1344,7 +1344,7 @@ msgid "Данные не загружены или объекты отсутст
 msgstr "Data not loaded or objects are missing."
 
 #: app/web/templates/main/selection.html:4
-msgid "Система Qualifiedа квартир по бюджету"
+msgid "Система Подбора квартир по бюджету"
 msgstr "Apartment selection system by budget"
 
 #: app/web/templates/main/selection.html:9

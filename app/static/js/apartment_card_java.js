@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let priceAfterAllDiscounts = basePriceDeducted * (1 - (totalDiscountRate / 100));
 
         if (typeKey.includes('mortgage')) {
-            const MAX_MORTGAGE = 420000000;
+            const MAX_MORTGAGE = 0;
             const MIN_INITIAL_PAYMENT_PERCENT = 0.15;
             let initialPayment = priceAfterAllDiscounts - MAX_MORTGAGE;
             let minRequiredPayment = priceAfterAllDiscounts * MIN_INITIAL_PAYMENT_PERCENT;

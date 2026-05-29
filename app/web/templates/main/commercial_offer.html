@@ -193,7 +193,7 @@
         <div class="header">
             <img src="{{ url_for('static', filename='logo_light.svg') }}" alt="{{ _('Логотип') }}" class="header-logo">
             <h1>{{ _('Коммерческое предложение') }}</h1>
-            <p><strong>Golden House | {{ _('Жилая недвижимость') }}. {{ _('Дата') }}: {{ current_date }}</strong></p>
+            <p><strong>| {{ _('Жилая недвижимость') }}. {{ _('Дата') }}: {{ current_date }}</strong></p>
         </div>
 
         <div class="section-title">1. {{ _('Информация об объекте') }}</div>
@@ -268,7 +268,7 @@
         {% endif %}
 
         <div class="footer">
-            <p>{% trans %}Это коммерческое предложение не является публичной офертой. Актуальность цен и условий уточняйте у менеджеров Golden House.{% endtrans %}</p>
+            <p>{% trans %}Это коммерческое предложение не является публичной офертой. Актуальность цен и условий уточняйте у менеджеров.{% endtrans %}</p>
         </div>
     </div>
 
