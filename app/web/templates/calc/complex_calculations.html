@@ -152,6 +152,7 @@
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <h6 class="fw-bold mb-0 text-uppercase text-secondary" style="font-size:0.85rem; letter-spacing: 0.5px;">{{ _('График начислений и financial коэффициенты элементов') }}</h6>
                             <div class="btn-group">
+                                <button id="btnToggleColumns" type="button" class="btn btn-sm btn-outline-secondary rounded-0">{{ _('Скрыть Коэф/NPV') }}</button>
                                 <button id="btnAutoDistribute" class="btn btn-sm btn-outline-success rounded-0">{{ _('Равными долями на остаток') }}</button>
                                 <button id="btnAddPayment" class="btn btn-sm btn-outline-primary rounded-0">{{ _('Добавить платеж') }}</button>
                             </div>
@@ -161,15 +162,16 @@
                             <table class="table table-bordered table-hover table-sm align-middle mb-0" id="scheduleTable" style="border-color: var(--bs-border-color);">
                                 <thead class="table-dark small text-uppercase text-white-50" style="font-size:0.75rem;">
                                     <tr>
-                                        <th style="width: 15%;" class="py-2 text-center">{{ _('№ Месяца') }}</th>
-                                        <th style="width: 40%;" class="py-2">{{ _('Номинальная сумма (KZT)') }}</th>
-                                        <th style="width: 20%;" class="py-2 text-center">{{ _('Коэф. дисконта (1/f^t)') }}</th>
-                                        <th style="width: 25%;" class="py-2 text-end">{{ _('Приведенная стоимость (NPV)') }}</th>
+                                        <th style="width: 15%;" class="py-2 text-center">{{ _('Месяц') }}</th>
+                                        <th style="width: 15%;" class="py-2 text-center">{{ _('Дата платежа') }}</th>
+                                        <th style="width: 25%;" class="py-2">{{ _('Номинальная сумма (KZT)') }}</th>
+                                        <th style="width: 15%;" class="py-2 text-center col-factor">{{ _('Коэф. дисконта (1/f^t)') }}</th>
+                                        <th style="width: 20%;" class="py-2 text-end col-npv">{{ _('Приведенная стоимость (NPV)') }}</th>
                                         <th style="width: 10%;" class="py-2 text-center">{{ _('Удалить') }}</th>
                                     </tr>
                                 </thead>
                                 <tbody id="scheduleBody">
-                                    </tbody>
+                                </tbody>
                             </table>
                         </div>
 
@@ -178,6 +180,16 @@
                                 <i class="bi bi-check2-all me-2"></i>{{ _('Проверить рассчеты ') }}
                             </button>
                         </div>
+
+                        <div class="d-grid gap-2 mt-2">
+                            <button id="btnGenerateOffer" type="button" class="btn btn-dark btn-lg fw-bold rounded-0 text-uppercase">
+                                <i class="bi bi-file-earmark-pdf me-2"></i>{{ _('Сформировать КП BUTA Group') }}
+                            </button>
+                        </div>
+
+                        <form id="hiddenOfferForm" action="{{ url_for('complex_calc.generate_offer') }}" method="POST" target="_blank" style="display: none;">
+                            <input type="hidden" name="payload" id="hiddenOfferPayload">
+                        </form>
 
                         <div id="validationResultBox" class="mt-3 p-3 border d-none rounded-0">
                             <div id="validationStatusText" class="fw-bold small"></div>
@@ -230,7 +242,45 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnApplyEscalationLive = document.getElementById('btnApplyEscalationLive');
     const validationResultBox = document.getElementById('validationResultBox');
     const validationStatusText = document.getElementById('validationStatusText');
+    const btnGenerateOffer = document.getElementById('btnGenerateOffer');
+    if (btnGenerateOffer) {
+        btnGenerateOffer.addEventListener('click', () => {
+            const templateId = templateSelect.value;
 
+            const schedule = Array.from(scheduleBody.querySelectorAll('tr'))
+                .map(tr => {
+                    const mInput = tr.querySelector('.month-input');
+                    const dInput = tr.querySelector('.date-input');
+                    const aInput = tr.querySelector('.amount-input');
+
+                    // Получение текстового наименования месяца из первой ячейки строки
+                    let labelText = tr.cells[0].textContent.trim();
+
+                    return {
+                        month_index: mInput ? parseInt(mInput.value, 10) : 0,
+                        month_name: labelText,
+                        payment_date: dInput ? dInput.value : '',
+                        amount: aInput ? parseFloat(aInput.value) || 0 : 0
+                    };
+                })
+                .filter(item => item.amount > 0);
+
+            if (schedule.length === 0) {
+                alert('Заполните график платежей перед формированием КП.');
+                return;
+            }
+
+            const payload = {
+                sell_id: SELL_ID,
+                template_id: parseInt(templateId, 10),
+                schedule: schedule,
+                discounts: getActiveDiscounts()
+            };
+
+            document.getElementById('hiddenOfferPayload').value = JSON.stringify(payload);
+            document.getElementById('hiddenOfferForm').submit();
+        });
+    }
     // Внутренние финансовые переменные
     const basePriceRaw = parseFloat(document.getElementById('basePriceRaw').value) || 0;
     let targetCleanPrice = basePriceRaw;
@@ -245,6 +295,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let isDragging = false;
     let dragValue = null;
 
+    const monthNames = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
+    let columnsHidden = false;
+
     function init() {
         bindEvents();
         updateTargetPrice();
@@ -256,6 +309,17 @@ document.addEventListener('DOMContentLoaded', () => {
         btnAutoDistribute.addEventListener('click', autoDistributeRemainder);
         btnApplyEscalationLive.addEventListener('click', applyLiveCompensation);
 
+        const btnToggleColumns = document.getElementById('btnToggleColumns');
+        if (btnToggleColumns) {
+            btnToggleColumns.addEventListener('click', () => {
+                columnsHidden = !columnsHidden;
+                document.querySelectorAll('.col-factor, .col-npv').forEach(el => {
+                    if (columnsHidden) el.classList.add('d-none');
+                    else el.classList.remove('d-none');
+                });
+            });
+        }
+
         document.querySelectorAll('.discount-input').forEach(input => {
             input.addEventListener('input', updateTargetPrice);
         });
@@ -263,6 +327,33 @@ document.addEventListener('DOMContentLoaded', () => {
         scheduleBody.addEventListener('input', (e) => {
             if (e.target.classList.contains('amount-input') || e.target.classList.contains('month-input')) {
                 executeFinancialMathematicsLive();
+            }
+        });
+
+        scheduleBody.addEventListener('change', (e) => {
+            if (e.target.classList.contains('date-input')) {
+                const row = e.target.closest('tr');
+                if (row === scheduleBody.firstElementChild && e.target.value) {
+                    const firstDate = new Date(e.target.value);
+                    const targetDay = firstDate.getDate();
+
+                    Array.from(scheduleBody.querySelectorAll('tr')).forEach((tr, index) => {
+                        if (index === 0) return;
+
+                        const mInput = tr.querySelector('.month-input');
+                        const dInput = tr.querySelector('.date-input');
+                        if (mInput && dInput) {
+                            const monthOffset = parseInt(mInput.value, 10);
+                            let adjustedMonth = (firstDate.getMonth() + monthOffset) % 12;
+                            let adjustedYear = firstDate.getFullYear() + Math.floor((firstDate.getMonth() + monthOffset) / 12);
+
+                            let maxDays = new Date(adjustedYear, adjustedMonth + 1, 0).getDate();
+                            let finalDay = targetDay > maxDays ? maxDays : targetDay;
+
+                            dInput.value = `${adjustedYear}-${String(adjustedMonth + 1).padStart(2, '0')}-${String(finalDay).padStart(2, '0')}`;
+                        }
+                    });
+                }
             }
         });
 
@@ -385,10 +476,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const inputStyles = "background-color: var(--bs-body-bg); color: var(--bs-body-color); border: 1px solid var(--bs-border-color); font-weight: bold;";
 
+        let baseDate = new Date();
+        let targetMonth = baseDate.getMonth() + nextMonth;
+        let targetYear = baseDate.getFullYear() + Math.floor(targetMonth / 12);
+        targetMonth = targetMonth % 12;
+
+        let monthNameLabel = `${monthNames[targetMonth]} ${targetYear}`;
+
+        let defaultDate = '';
+        const firstDateInput = scheduleBody.querySelector('.date-input');
+        if (firstDateInput && firstDateInput.value) {
+            let fd = new Date(firstDateInput.value);
+            let day = fd.getDate();
+            let daysInMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+            let safeDay = day > daysInMonth ? daysInMonth : day;
+            defaultDate = `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}-${String(safeDay).padStart(2, '0')}`;
+        }
+
         tr.innerHTML = `
+            <td class="text-center fw-bold align-middle" style="font-size: 0.85rem;">
+                <input type="hidden" class="month-input" value="${nextMonth}">
+                ${monthNameLabel}
+            </td>
             <td class="text-center">
-                <input type="number" class="form-control form-control-sm month-input text-center rounded-0"
-                       style="${inputStyles}" min="0" max="${maxTermMonths}" step="1" value="${nextMonth}" ${isInitial ? 'readonly' : ''} required>
+                <input type="date" class="form-control form-control-sm date-input rounded-0" style="${inputStyles}" value="${defaultDate}" required>
             </td>
             <td>
                 <div class="input-group input-group-sm">
@@ -397,8 +508,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${!isInitial ? `<span class="input-group-text drag-handle" style="cursor: ns-resize; background-color: rgba(var(--macro-green-rgb), 0.1); border-color: var(--bs-border-color); color: var(--macro-green);" title="Потяните для копирования значения (как в Excel)"><i class="bi bi-grip-vertical"></i></span>` : ''}
                 </div>
             </td>
-            <td class="text-center fw-bold text-muted small discount-factor-cell">—</td>
-            <td class="text-end fw-bold npv-cell" style="color: var(--bs-body-color);">0 ₸</td>
+            <td class="text-center fw-bold text-muted small discount-factor-cell col-factor ${columnsHidden ? 'd-none' : ''}">—</td>
+            <td class="text-end fw-bold npv-cell col-npv ${columnsHidden ? 'd-none' : ''}" style="color: var(--bs-body-color);">0 ₸</td>
             <td class="text-center">
                 ${!isInitial ? `<button class="btn btn-sm btn-outline-danger rounded-0 btn-remove-row p-1" type="button"><i class="bi bi-trash3"></i></button>` : '—'}
             </td>
@@ -556,9 +667,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const schedule = Array.from(scheduleBody.querySelectorAll('tr'))
             .map(tr => ({
                 month_index: parseInt(tr.querySelector('.month-input').value, 10),
+                payment_date: tr.querySelector('.date-input') ? tr.querySelector('.date-input').value : '',
                 amount: parseFloat(tr.querySelector('.amount-input').value) || 0
             }))
-            .filter(item => item.amount > 0); // Исключаем пустые неиспользованные месяцы из отправки в БД
+            .filter(item => item.amount > 0);
 
         btnValidateSchedule.disabled = true;
         const originalText = btnValidateSchedule.textContent;

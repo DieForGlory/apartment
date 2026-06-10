@@ -1,0 +1,200 @@
+{% extends "layouts/base.html" %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="d-flex justify-content-end mb-4 gap-2 d-print-none">
+        <button onclick="window.print();" class="btn btn-outline-dark rounded-0 text-uppercase fw-bold btn-sm shadow-none px-4" style="letter-spacing: 1px;">
+            <i class="bi bi-printer-fill me-2"></i>Печать
+        </button>
+        <button onclick="downloadPDF();" class="btn btn-dark rounded-0 text-uppercase fw-bold btn-sm shadow-none px-4" style="letter-spacing: 1px;">
+            <i class="bi bi-file-earmark-pdf me-2"></i>Скачать PDF
+        </button>
+    </div>
+
+    <div id="offerDocument" class="p-5 bg-white printable-co" data-bs-theme="light">
+
+        <div class="d-flex justify-content-between align-items-end border-bottom border-dark pb-4 mb-5" style="border-width: 2px !important;">
+            <div>
+                <h1 class="text-uppercase m-0 text-dark" style="letter-spacing: 4px; font-weight: 900; font-size: 2.5rem;">BUTA GROUP</h1>
+                <div class="text-uppercase mt-2 co-text-muted fw-bold" style="letter-spacing: 2px; font-size: 0.65rem;">Nature • Human • Technology</div>
+            </div>
+            <div class="text-end">
+                <h6 class="text-uppercase fw-bold m-0 mb-2 text-dark" style="letter-spacing: 1.5px;">Коммерческое предложение</h6>
+                <div class="co-text-muted small" style="font-size: 0.8rem;">ID сделки: {{ data.apartment.id }}</div>
+                <div class="co-text-muted small" style="font-size: 0.8rem;">Дата: {{ current_date if current_date else 'Текущая дата' }}</div>
+            </div>
+        </div>
+
+        <div class="mb-5" style="page-break-inside: avoid;">
+            <h6 class="text-uppercase fw-bold mb-3 text-dark co-section-title">1. Информация об объекте</h6>
+            <div class="row g-0 border co-border">
+                <div class="col-4 p-4 border-end co-border">
+                    <div class="text-uppercase co-text-muted mb-1" style="font-size: 0.65rem; letter-spacing: 1px;">Жилой комплекс</div>
+                    <div class="fw-bold fs-6 text-dark">{{ data.apartment.house.complex_name if data.apartment and data.apartment.house else '—' }}</div>
+                </div>
+                <div class="col-4 p-4 border-end co-border">
+                    <div class="text-uppercase co-text-muted mb-1" style="font-size: 0.65rem; letter-spacing: 1px;">Категория / Тип</div>
+                    <div class="fw-bold fs-6 text-dark">{{ data.apartment.estate_sell_category }}</div>
+                </div>
+                <div class="col-4 p-4">
+                    <div class="text-uppercase co-text-muted mb-1" style="font-size: 0.65rem; letter-spacing: 1px;">Площадь объекта</div>
+                    <div class="fw-bold fs-6 text-dark">{{ data.apartment.estate_area }} м²</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-5" style="page-break-inside: avoid;">
+            <h6 class="text-uppercase fw-bold mb-3 text-dark co-section-title">2. Расчет стоимости</h6>
+            <table class="table mb-0 co-table border co-border">
+                <tbody>
+                    <tr>
+                        <td class="p-3 text-uppercase co-text-muted align-middle border-bottom co-border" style="font-size: 0.75rem; width: 60%;">Базовая цена по прайс-листу</td>
+                        <td class="p-3 text-end fw-bold text-dark align-middle border-bottom co-border text-nowrap">{{ "{:,.0f}".format(data.apartment.estate_price).replace(",", " ") }} KZT</td>
+                    </tr>
+                    {% if discounts %}
+                    {% for type, val in discounts.items() %}
+                    {% if val > 0 %}
+                    <tr>
+                        <td class="p-3 text-uppercase co-text-muted align-middle border-bottom co-border" style="font-size: 0.75rem;">Примененная скидка ({{ type | upper }})</td>
+                        <td class="p-3 text-end fw-bold text-danger align-middle border-bottom co-border text-nowrap">-{{ (val * 100) | round(1) }}%</td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                    {% endif %}
+                    <tr class="co-bg-light">
+                        <td class="p-3 text-uppercase fw-bold text-dark align-middle" style="font-size: 0.75rem;">Итоговая номинальная сумма договора</td>
+                        <td class="p-3 text-end fw-bold fs-5 text-dark align-middle text-nowrap">{{ "{:,.0f}".format(total_nominal_price if total_nominal_price else data.apartment.estate_price).replace(",", " ") }} KZT</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mb-5" style="page-break-inside: avoid;">
+            <h6 class="text-uppercase fw-bold mb-3 text-dark co-section-title">3. Первоначальный взнос (ПВ)</h6>
+            <div class="d-flex justify-content-between align-items-center p-4 border co-border co-bg-light">
+                <div>
+                    <div class="text-uppercase co-text-muted mb-1" style="font-size: 0.65rem; letter-spacing: 1px;">Условия оплаты</div>
+                    <div class="fw-bold text-dark text-uppercase" style="font-size: 0.85rem;">Оплата при подписании договора</div>
+                </div>
+                <div class="text-end text-nowrap">
+                    <div class="fw-bold text-dark fs-4 mb-1">{{ "{:,.0f}".format(initial_payment_amount if initial_payment_amount else 0).replace(",", " ") }} KZT</div>
+                    <div class="fw-bold text-uppercase co-text-muted" style="font-size: 0.65rem; letter-spacing: 1px;">({{ initial_payment_percent if initial_payment_percent else 0 }}% от суммы договора)</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-5">
+            <h6 class="text-uppercase fw-bold mb-3 text-dark co-section-title">4. График платежей</h6>
+            <table class="table co-table border co-border mb-0">
+                <thead class="co-table-dark">
+                    <tr>
+                        <th class="p-3 text-center text-nowrap text-uppercase" style="font-size: 0.65rem; letter-spacing: 1px; width: 15%;">№ Транша</th>
+                        <th class="p-3 text-start text-nowrap text-uppercase" style="font-size: 0.65rem; letter-spacing: 1px; width: 40%;">Месяц начисления</th>
+                        <th class="p-3 text-center text-nowrap text-uppercase" style="font-size: 0.65rem; letter-spacing: 1px; width: 20%;">Дата платежа</th>
+                        <th class="p-3 text-end text-nowrap text-uppercase" style="font-size: 0.65rem; letter-spacing: 1px; width: 25%;">Сумма (KZT)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if schedule %}
+                    {% for item in schedule %}
+                    <tr>
+                        <td class="p-3 text-center fw-bold text-dark align-middle border-bottom co-border">{{ loop.index }}</td>
+                        <td class="p-3 text-start text-uppercase fw-bold co-text-muted align-middle border-bottom co-border" style="font-size: 0.75rem; white-space: normal;">
+                            {{ item.month_name if item.month_name else 'Месяц ' ~ item.month_index }}
+                        </td>
+                        <td class="p-3 text-center fw-bold text-dark align-middle border-bottom co-border text-nowrap">{{ item.payment_date if item.payment_date else '—' }}</td>
+                        <td class="p-3 text-end fw-bold text-dark align-middle border-bottom co-border text-nowrap">{{ "{:,.0f}".format(item.amount).replace(",", " ") }}</td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="p-4 text-center co-text-muted border-bottom co-border">График платежей не сформирован</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+                {% if schedule %}
+                <tfoot class="co-bg-light">
+                    <tr>
+                        <td colspan="3" class="p-3 text-uppercase text-start fw-bold text-dark align-middle" style="font-size: 0.75rem; letter-spacing: 1px;">Итого к оплате по графику</td>
+                        <td class="p-3 text-end fw-bold text-dark align-middle text-nowrap">{{ "{:,.0f}".format(total_nominal_price if total_nominal_price else 0).replace(",", " ") }}</td>
+                    </tr>
+                </tfoot>
+                {% endif %}
+            </table>
+        </div>
+
+        <div class="mt-5 pt-4 border-top co-border text-center" style="page-break-inside: avoid;">
+            <div class="text-uppercase fw-bold text-dark mb-2" style="letter-spacing: 2px; font-size: 0.65rem;">
+                Проектирование устойчивых пространств для жизни, соединяющих человека, природу и технологии.
+            </div>
+            <div class="text-uppercase co-text-muted" style="font-size: 0.55rem; letter-spacing: 1px;">
+                Документ является предварительным расчетом и не является обязательством до момента подписания официального договора.
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+    function downloadPDF() {
+        const element = document.getElementById('offerDocument');
+        const opt = {
+            margin:       [10, 10, 10, 10],
+            filename:     'Buta_Group_Offer_{{ data.apartment.id }}.pdf',
+            image:        { type: 'jpeg', quality: 1 },
+            html2canvas:  { scale: 3, useCORS: true, backgroundColor: '#ffffff', letterRendering: true },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak:    { mode: ['css', 'legacy'] }
+        };
+        html2pdf().set(opt).from(element).save();
+    }
+</script>
+
+<style>
+.printable-co {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    background-color: #ffffff !important;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.printable-co * {
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+}
+
+.co-text-muted { color: #888888 !important; }
+.co-border { border-color: #e0e0e0 !important; }
+.co-bg-light { background-color: #fcfcfc !important; }
+
+.co-section-title {
+    letter-spacing: 1.5px;
+    font-size: 0.85rem;
+}
+
+.co-table {
+    table-layout: fixed;
+    width: 100%;
+}
+
+.co-table-dark {
+    background-color: #1a1a1a !important;
+}
+
+.co-table-dark th {
+    background-color: transparent !important;
+    color: #ffffff !important;
+    border: none !important;
+}
+
+.text-nowrap {
+    white-space: nowrap !important;
+}
+
+@media print {
+    body { background-color: #ffffff !important; }
+    .printable-co { padding: 0 !important; max-width: 100%; }
+    .d-print-none { display: none !important; }
+}
+</style>
+{% endblock %}
